@@ -19,6 +19,7 @@ DB_HOST_ENV = os.getenv("DB_HOST", "localhost")
 DB_PORT_ENV = os.getenv("DB_PORT", "5432")
 DB_NAME_ENV = os.getenv("DB_NAME", "pet_erp")                  # Default Company DB (Clinical/Financial data)
 MASTER_DB_NAME_ENV = os.getenv("MASTER_DB_NAME", "pet_erp_master") # Master DB (Tenants/Companies/RBAC)
+MASTER_DB_NAME = MASTER_DB_NAME_ENV
 DB_USER_ENV = os.getenv("DB_USER", "postgres")
 DB_PASSWORD_ENV = os.getenv("DB_PASSWORD", "")
 
