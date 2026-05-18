@@ -12,36 +12,40 @@ const navGroups = [
     label: '🏢 Master System',
     badge: 'NEW',
     items: [
-      { to: '/companies',    icon: Building2,        label: 'Company Profiles' },
+      { to: '/companies', icon: Building2, label: 'Company Profiles' },
     ]
   },
   {
     label: '📦 Phase 1 — Masters',
     badge: 'LIVE',
     items: [
-      { to: '/dashboard',    icon: LayoutDashboard, label: 'Dashboard' },
-      { to: '/clinic-setup', icon: Hospital,         label: 'Clinic Setup' },
-      { to: '/masters',      icon: MapPin,            label: 'Masters' },
-      { to: '/owners',       icon: Users,             label: 'Pet Owners' },
-      { to: '/pets',         icon: PawPrint,          label: 'Pets' },
-      { to: '/doctors',      icon: Stethoscope,       label: 'Doctors & Staff' },
-      { to: '/agents',       icon: Handshake,         label: 'Referral Agents' },
-      { to: '/suppliers',    icon: Package,           label: 'Suppliers' },
+      { to: '/dashboard', icon: LayoutDashboard, label: 'Dashboard' },
+      { to: '/clinic-setup', icon: Hospital, label: 'Clinic Setup' },
+      { to: '/masters', icon: MapPin, label: 'Masters' },
+      { to: '/owners', icon: Users, label: 'Pet Owners' },
+      { to: '/pets', icon: PawPrint, label: 'Pets' },
+      { to: '/doctors', icon: Stethoscope, label: 'Doctors & Staff' },
+      { to: '/agents', icon: Handshake, label: 'Referral Agents' },
+      { to: '/suppliers', icon: Package, label: 'Suppliers' },
+      { to: '/medicines', icon: Pill, label: 'Medicine Master' },
+      { to: '/vaccination', icon: Syringe, label: 'Vaccination' },
+      { to: '/users', icon: UserCog, label: 'User Management' },
     ]
   },
+  /*
+  // ─── FUTURE PHASES (Commented out for Phase 1 Go-Live) ───
   {
     label: 'Phase 2 — Clinical',
     items: [
-      { to: '/appointments',   icon: CalendarDays,   label: 'Appointments' },
+    
       { to: '/consultations',  icon: ClipboardList,  label: 'Consultations' },
       { to: '/procedures',     icon: Stethoscope,    label: 'Procedures' },
-      { to: '/vaccination',    icon: Syringe,        label: 'Vaccination' },
+      
     ]
   },
   {
     label: 'Phase 3 — Pharmacy & Stock',
     items: [
-      { to: '/medicines',     icon: Pill,         label: 'Medicine Master' },
       { to: '/sales-billing', icon: Receipt,      label: 'Sales Billing' },
       { to: '/purchases',     icon: ShoppingCart, label: 'Purchases' },
       { to: '/inventory',     icon: Package,      label: 'Inventory' },
@@ -51,9 +55,10 @@ const navGroups = [
     label: 'Phase 4 — Accounts',
     items: [
       { to: '/ledger',       icon: BookOpen,     label: 'Chart of Accounts' },
-      { to: '/users',        icon: UserCog,      label: 'User Management' },
+      
     ]
   },
+  */
 ]
 
 export default function Sidebar() {
