@@ -48,15 +48,23 @@ def create_company(data: CompanyCreate, db: Session = Depends(get_master_db)):
         raise HTTPException(status_code=400, detail=f"Company code '{data.company_code.upper()}' already exists for this tenant.")
 
     db_name = f"tenant{data.tenant_id}_{data.company_code.lower()}_clinic"
+    import os
+    from database import DB_NAME
+    if os.getenv("DATABASE_URL"):
+        db_name = DB_NAME
+    else:
+        try:
+            root_engine = create_engine(f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/postgres", isolation_level="AUTOCOMMIT")
+            with root_engine.connect() as conn:
+                res = conn.execute(text(f"SELECT 1 FROM pg_database WHERE datname = '{db_name}'"))
+                if not res.fetchone():
+                    conn.execute(text(f"CREATE DATABASE {db_name}"))
+        except Exception as e:
+            print(f"⚠️ Could not create separate database '{db_name}': {e}. Falling back to default DB.")
+            db_name = DB_NAME
+
     db_uri_plain = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{db_name}"
     
-    # 1. Create Database in Postgres
-    root_engine = create_engine(f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/postgres", isolation_level="AUTOCOMMIT")
-    with root_engine.connect() as conn:
-        res = conn.execute(text(f"SELECT 1 FROM pg_database WHERE datname = '{db_name}'"))
-        if not res.fetchone():
-            conn.execute(text(f"CREATE DATABASE {db_name}"))
-
     # 2. Instantiate full company DB schema using Base.metadata.create_all
     company_engine = create_engine(db_uri_plain)
     Base.metadata.create_all(bind=company_engine)

@@ -14,18 +14,40 @@ from config import SECRET_KEY, ALGORITHM
 
 load_dotenv()
 
-DB_HOST = os.getenv("DB_HOST", "localhost")
-DB_PORT = os.getenv("DB_PORT", "5432")
-DB_NAME = os.getenv("DB_NAME", "pet_erp")                  # Default Company DB (Clinical/Financial data)
-MASTER_DB_NAME = os.getenv("MASTER_DB_NAME", "pet_erp_master") # Master DB (Tenants/Companies/RBAC)
-DB_USER = os.getenv("DB_USER", "postgres")
-DB_PASSWORD = os.getenv("DB_PASSWORD", "")
+# Base environment variables
+DB_HOST_ENV = os.getenv("DB_HOST", "localhost")
+DB_PORT_ENV = os.getenv("DB_PORT", "5432")
+DB_NAME_ENV = os.getenv("DB_NAME", "pet_erp")                  # Default Company DB (Clinical/Financial data)
+MASTER_DB_NAME_ENV = os.getenv("MASTER_DB_NAME", "pet_erp_master") # Master DB (Tenants/Companies/RBAC)
+DB_USER_ENV = os.getenv("DB_USER", "postgres")
+DB_PASSWORD_ENV = os.getenv("DB_PASSWORD", "")
 
-# URLs
-DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
-MASTER_DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{MASTER_DB_NAME}"
+# If Railway (or any cloud) sets DATABASE_URL, parse it to extract actual host, port, user, password
+from urllib.parse import urlparse
 
-# Company DB Engine (pet_erp)
+if os.getenv("DATABASE_URL"):
+    parsed = urlparse(os.getenv("DATABASE_URL"))
+    DB_USER = parsed.username or DB_USER_ENV
+    DB_PASSWORD = parsed.password or DB_PASSWORD_ENV
+    DB_HOST = parsed.hostname or DB_HOST_ENV
+    DB_PORT = parsed.port or DB_PORT_ENV
+    DB_NAME = parsed.path.lstrip("/") or DB_NAME_ENV
+    DATABASE_URL = os.getenv("DATABASE_URL")
+else:
+    DB_USER = DB_USER_ENV
+    DB_PASSWORD = DB_PASSWORD_ENV
+    DB_HOST = DB_HOST_ENV
+    DB_PORT = DB_PORT_ENV
+    DB_NAME = DB_NAME_ENV
+    DATABASE_URL = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+
+# For Master DB URL, allow explicit MASTER_DATABASE_URL or derive from cloud host/credentials
+MASTER_DATABASE_URL = os.getenv(
+    "MASTER_DATABASE_URL", 
+    f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{MASTER_DB_NAME_ENV}"
+)
+
+# Company DB Engine (pet_erp / railway)
 engine = create_engine(DATABASE_URL, echo=False)
 SessionLocal = sessionmaker(autocommit=False, autoflush=False, bind=engine)
 
