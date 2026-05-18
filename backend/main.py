@@ -156,10 +156,15 @@ app = FastAPI(
     redoc_url="/redoc"
 )
 
-# ─── CORS (allow React frontend on any local port) ───────────────────────────
+# ─── CORS (Explicitly list Vercel & Localhost for Mobile/Production CORS) ────
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],        # Restrict to specific origin in production
+    allow_origins=[
+        "http://localhost:5173", 
+        "http://localhost:3000", 
+        "http://localhost:8000", 
+        "https://pet-erp-six.vercel.app"
+    ],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
