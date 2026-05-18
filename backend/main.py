@@ -41,6 +41,55 @@ except Exception as e:
 Base.metadata.create_all(bind=master_engine)
 Base.metadata.create_all(bind=engine)
 
+# ─── Auto-Seed Default Admin & Company if Empty (Cloud Hardening) ───────────
+try:
+    # 1. Seed Master User
+    from models.master_sys import MasterUser, CompanyProfile, Tenant
+    from models.users import User
+    from database import MasterSessionLocal, SessionLocal, DB_NAME
+    from utils.encryption import encrypt_db_uri
+    
+    m_db = MasterSessionLocal()
+    try:
+        # Tenant
+        if not m_db.query(Tenant).filter_by(tenant_id=1).first():
+            m_db.add(Tenant(tenant_id=1, tenant_name="Default Tenant", email="admin@petclinicerp.com", password_hash="$2b$12$.OTMdc4ivJApNDSoFAOgnevbFmic/bRFAFJi80iY5jI70n0FpcUw."))
+            m_db.commit()
+            
+        # MasterUser
+        if not m_db.query(MasterUser).filter_by(email="admin@petclinicerp.com").first():
+            m_db.add(MasterUser(
+                tenant_id=1, full_name="System Admin", email="admin@petclinicerp.com",
+                password_hash="$2b$12$.OTMdc4ivJApNDSoFAOgnevbFmic/bRFAFJi80iY5jI70n0FpcUw.", phone="1234567890", is_active=True
+            ))
+            m_db.commit()
+            
+        # CompanyProfile
+        if not m_db.query(CompanyProfile).filter_by(company_code="DEF").first():
+            db_uri_plain = f"postgresql://{DB_USER}:{DB_PASSWORD}@{DB_HOST}:{DB_PORT}/{DB_NAME}"
+            m_db.add(CompanyProfile(
+                tenant_id=1, company_code="DEF", company_name="Default Pet Clinic", db_name=DB_NAME,
+                db_uri=encrypt_db_uri(db_uri_plain), address_line1="Main Clinic Address", city="Metropolis",
+                state="State", pincode="123456", current_fy="2026-27", status="Active"
+            ))
+            m_db.commit()
+    finally:
+        m_db.close()
+        
+    # 2. Seed Company User (admin / admin123)
+    c_db = SessionLocal()
+    try:
+        if not c_db.query(User).filter_by(username="admin").first():
+            c_db.add(User(
+                username="admin", password_hash="$2b$12$.OTMdc4ivJApNDSoFAOgnevbFmic/bRFAFJi80iY5jI70n0FpcUw.",
+                full_name="System Administrator", role="Admin", email="admin@petclinic.com", is_active=True
+            ))
+            c_db.commit()
+    finally:
+        c_db.close()
+except Exception as e:
+    print(f"⚠️ Auto-seeding check failed: {e}")
+
 # ─── Initialize Document Sequences for Default DB & All Company DBs ─────────
 try:
     print("🔄 Initializing document sequences and PL/pgSQL functions for primary DB...")
