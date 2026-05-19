@@ -12,7 +12,7 @@ from schemas.auth import LoginRequest, LoginDiscoveryResponse, SelectCompanyRequ
 from config import SECRET_KEY, ALGORITHM, ACCESS_TOKEN_EXPIRE_MINUTES
 from utils.encryption import encrypt_db_uri
 
-router = APIRouter(prefix="/auth", tags=["Authentication"])
+router = APIRouter(prefix="", tags=["Authentication"])
 
 
 def verify_password(plain: str, hashed: str) -> bool:
