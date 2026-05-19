@@ -171,7 +171,7 @@ app.add_middleware(
 )
 
 # ─── Register Routers ─────────────────────────────────────────────────────────
-app.include_router(auth.router)
+app.include_router(auth.router, prefix="/auth")
 app.include_router(clinic.router)
 app.include_router(masters.router)
 app.include_router(owners.router)
