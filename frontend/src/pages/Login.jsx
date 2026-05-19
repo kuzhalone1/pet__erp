@@ -22,7 +22,7 @@ export default function Login() {
     }
     setLoading(true)
     try {
-      const res = await api.post('/auth/login', { username: form.username })
+      const res = await api.post('/auth/login', form)
       setDiscoveryData(res.data)
       setStep(2)
       toast.success(`Credentials verified! Please select a company context.`)
@@ -39,8 +39,9 @@ export default function Login() {
       const payload = {
         company_id: company.company_id,
         username: form.username,
-        temp_token: discoveryData.temp_token
+        password: form.password // Pass the password from your form state for full validation
       }
+      
       const res = await api.post('/auth/select-company', payload)
       
       // Save final token and user context
@@ -55,15 +56,17 @@ export default function Login() {
         current_fy:   res.data.current_fy
       }))
       
-      toast.success(`Context established: ${res.data.company_name}`)
-      navigate('/dashboard')
+      toast.success(`Welcome back, ${res.data.full_name}!`)
+      
+      // Route straight to your application main dashboard layout
+      navigate('/dashboard') 
+      
     } catch (err) {
-      toast.error(err.response?.data?.detail || 'Failed to establish company context')
+      toast.error(err.response?.data?.detail || 'Company selection failed')
     } finally {
       setLoading(false)
     }
   }
-
   return (
     <div className="min-h-screen bg-gradient-to-br from-primary-600 via-primary-700 to-primary-900 flex items-center justify-center p-4 animate-fadeIn">
       {/* Background decorations */}
