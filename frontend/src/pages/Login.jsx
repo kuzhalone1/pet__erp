@@ -39,7 +39,8 @@ export default function Login() {
       const payload = {
         company_id: company.company_id,
         username: form.username,
-        password: form.password // Pass the password from your form state for full validation
+        // Match the backend: Pass the temp_token returned from the Step 1 response
+        temp_token: discoveryData.temp_token 
       }
       
       const res = await api.post('/auth/select-company', payload)
