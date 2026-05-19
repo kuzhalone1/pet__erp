@@ -61,7 +61,7 @@ def enforce_module_access(required_module: str):
     return dependency
 
 
-@router.post("/login", response_model=LoginDiscoveryResponse)
+@router.post("login", response_model=LoginDiscoveryResponse)
 def login_discovery(payload: LoginRequest, master_db: Session = Depends(get_master_db)):
     """
     Step 1: Verify credentials against MasterUser or scan all active Company DBs for local branch Users.
