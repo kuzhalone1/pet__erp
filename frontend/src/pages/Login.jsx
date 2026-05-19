@@ -22,7 +22,7 @@ export default function Login() {
     }
     setLoading(true)
     try {
-      const res = await api.post('/auth/login', form)
+      const res = await api.post('/auth/login', { username: form.username })
       setDiscoveryData(res.data)
       setStep(2)
       toast.success(`Credentials verified! Please select a company context.`)
