@@ -61,7 +61,7 @@ const navGroups = [
   */
 ]
 
-export default function Sidebar() {
+export default function Sidebar({ isOpen = true }) {
   const navigate = useNavigate()
   const user = JSON.parse(localStorage.getItem('user') || '{}')
 
@@ -70,6 +70,8 @@ export default function Sidebar() {
     localStorage.removeItem('user')
     navigate('/login')
   }
+
+  if (!isOpen) return null;
 
   return (
     <aside className="w-64 bg-white border-r border-slate-100 flex flex-col shadow-sm shrink-0">
