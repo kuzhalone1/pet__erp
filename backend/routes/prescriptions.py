@@ -123,10 +123,11 @@ def download_prescription_pdf(prescription_id: int, db: Session = Depends(get_db
     pet = db.query(Pet).filter(Pet.pet_id == rx.pet_id).first()
     owner = db.query(PetOwner).filter(PetOwner.owner_id == rx.owner_id).first()
     doctor = db.query(Doctor).filter(Doctor.doctor_id == rx.doctor_id).first()
+    consultation = db.query(Consultation).filter(Consultation.consult_id == rx.consult_id).first()
     
     # 3. Generate PDF
     try:
-        pdf_bytes = generate_prescription_pdf(rx, clinic, pet, owner, doctor, items)
+        pdf_bytes = generate_prescription_pdf(rx, clinic, pet, owner, doctor, items, consultation)
     except Exception as e:
         raise HTTPException(500, f"PDF Generation Error: {str(e)}")
         

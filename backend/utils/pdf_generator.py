@@ -16,7 +16,7 @@ class PrescriptionPDF(FPDF):
         self.cell(0, 10, f'Page {self.page_no()}', 0, 0, 'C')
         self.set_text_color(0)
 
-def generate_prescription_pdf(rx, clinic, pet, owner, doctor, items):
+def generate_prescription_pdf(rx, clinic, pet, owner, doctor, items, consultation=None):
     pdf = PrescriptionPDF()
     pdf.add_page()
     
@@ -64,7 +64,26 @@ def generate_prescription_pdf(rx, clinic, pet, owner, doctor, items):
     pdf.multi_cell(95, 6, f"Dr. {doctor.name}\n{doctor.qualification or ''}\n{doctor.specialization or ''}\nReg No: {doctor.reg_number or 'N/A'}", 1, 'L')
     y_doctor = pdf.get_y()
     
-    pdf.set_y(max(y_patient, y_doctor) + 10)
+    pdf.set_y(max(y_patient, y_doctor) + 5)
+    
+    # 3.5 Vitals (If available)
+    if consultation:
+        vitals = []
+        if consultation.weight_kg: vitals.append(f"Wt: {consultation.weight_kg}kg")
+        if consultation.temp_celsius: vitals.append(f"Temp: {consultation.temp_celsius}°C")
+        if consultation.heart_rate: vitals.append(f"HR: {consultation.heart_rate}bpm")
+        if consultation.resp_rate: vitals.append(f"RR: {consultation.resp_rate}bpm")
+        
+        if vitals or consultation.chief_complaint:
+            pdf.set_font('helvetica', 'B', 9)
+            pdf.set_text_color(44, 62, 80)
+            if vitals:
+                pdf.cell(0, 6, "Vitals: " + " | ".join(vitals), 0, 1, 'L')
+            if consultation.chief_complaint:
+                pdf.cell(0, 6, "Chief Complaint: " + consultation.chief_complaint, 0, 1, 'L')
+            pdf.ln(2)
+            
+    pdf.set_y(pdf.get_y() + 5)
     
     # 4. Medicines Table
     pdf.set_font('helvetica', 'B', 10)

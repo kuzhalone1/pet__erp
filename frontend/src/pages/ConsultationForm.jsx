@@ -1,13 +1,40 @@
-import { useEffect, useState, useCallback } from 'react'
+import { useEffect, useState, useCallback, useRef } from 'react'
 import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
-import { Save, Plus, Trash2, CheckCircle, FileText, Printer } from 'lucide-react'
+import { Save, Plus, Trash2, CheckCircle, FileText, Printer, Search } from 'lucide-react'
 import api from '../api'
 
 const VISIT_TYPES = ['OPD', 'Follow-Up', 'Emergency', 'Walk-In']
-const FREQ_OPTIONS = ['Once daily', 'Twice daily', 'Three times daily', 'Every 8 hours', 'Every 12 hours', 'As needed']
+const FREQ_OPTIONS = ['Morn/Eve', 'Mor', 'Eve', 'Afternoon', 'Once daily', 'Twice daily', 'Three times daily', 'Every 8 hours', 'Every 12 hours', 'As needed']
 const ROUTE_OPTIONS = ['Oral', 'Topical', 'IV', 'IM', 'SC', 'Intranasal', 'Ophthalmic', 'Otic']
 const FORM_OPTIONS  = ['Tablet', 'Capsule', 'Syrup', 'Injection', 'Drops', 'Ointment', 'Powder', 'Cream']
+
+const FREQ_MULTIPLIERS = {
+  'Morn/Eve': 2,
+  'Mor': 1,
+  'Eve': 1,
+  'Afternoon': 1,
+  'Once daily': 1,
+  'Twice daily': 2,
+  'Three times daily': 3,
+  'Thrice daily': 3,
+  'Every 8 hours': 3,
+  'Every 12 hours': 2,
+  'As needed': 1
+}
+
+function extractNumber(str) {
+  const match = String(str).match(/[\d.]+/);
+  return match ? parseFloat(match[0]) : 1;
+}
+
+function calculateQty(dose, frequency, days) {
+  if (!dose && !frequency && !days) return '';
+  const d = extractNumber(dose || '');
+  const f = FREQ_MULTIPLIERS[frequency] || 1;
+  const daysNum = parseInt(days) || 1;
+  return d * f * daysNum;
+}
 
 const EMPTY_CONSULT = {
   consult_date: new Date().toISOString().slice(0, 10),
@@ -41,26 +68,38 @@ export default function ConsultationForm() {
   const [pets, setPets]           = useState([])
   const [owners, setOwners]       = useState([])
   const [doctors, setDoctors]     = useState([])
+  const [medicines, setMedicines] = useState([])
+  const [species, setSpecies]     = useState([])
+  const [breeds, setBreeds]       = useState([])
+  
   const [saving, setSaving]       = useState(false)
   const [loading, setLoading]     = useState(true)
   const [consultation, setConsultation] = useState(null)
   const [existingRx, setExistingRx]     = useState(null)
   const [activeTab, setActiveTab]       = useState('vitals')
   const [downloadingPdf, setDownloadingPdf] = useState(false)
+  
+  const [activeSearchIndex, setActiveSearchIndex] = useState(null)
 
   const load = useCallback(async () => {
     setLoading(true)
     try {
-      const [petsR, ownersR, docsR, procR] = await Promise.all([
+      const [petsR, ownersR, docsR, procR, medR, specR, breedR] = await Promise.all([
         api.get('/pets').catch(() => ({ data: [] })),
         api.get('/owners').catch(() => ({ data: [] })),
         api.get('/doctors').catch(() => ({ data: [] })),
         api.get('/procedures-master').catch(() => ({ data: [] })),
+        api.get('/inventory/medicines').catch(() => ({ data: [] })),
+        api.get('/masters/species').catch(() => ({ data: [] })),
+        api.get('/masters/breeds').catch(() => ({ data: [] })),
       ])
       setPets(petsR.data)
       setOwners(ownersR.data)
       setDoctors(docsR.data)
       setProcMaster(procR.data)
+      setMedicines(medR.data)
+      setSpecies(specR.data)
+      setBreeds(breedR.data)
 
       if (isEdit) {
         const c = await api.get(`/consultations/${id}`)
@@ -90,13 +129,29 @@ export default function ConsultationForm() {
         const petId   = searchParams.get('pet_id')
         const ownerId = searchParams.get('owner_id')
         const docId   = searchParams.get('doctor_id')
-        setForm(f => ({
-          ...f,
+        
+        let initialForm = {
+          ...EMPTY_CONSULT,
           appointment_id: apptId ? parseInt(apptId) : null,
           pet_id:    petId   || '',
           owner_id:  ownerId || '',
           doctor_id: docId   || '',
-        }))
+        }
+        
+        // Auto-fetch appointment time
+        if (apptId) {
+            try {
+                const apptRes = await api.get(`/appointments`);
+                const matchedAppt = apptRes.data.find(a => a.appt_id === parseInt(apptId));
+                if (matchedAppt) {
+                    initialForm.consult_date = matchedAppt.appt_date;
+                    initialForm.consult_time = String(matchedAppt.appt_time || '').slice(0, 5);
+                }
+            } catch(e) {}
+        }
+        
+        setForm(initialForm)
+        
         if (docId) {
           const doc = docsR.data.find(d => d.doctor_id === parseInt(docId))
           if (doc?.consultation_fee) setForm(f => ({ ...f, consult_fee: doc.consultation_fee }))
@@ -107,14 +162,12 @@ export default function ConsultationForm() {
 
   useEffect(() => { load() }, [load])
 
-  // Auto-fill owner when pet selected
   const handlePetChange = (e) => {
     const pid = parseInt(e.target.value)
     const pet = pets.find(p => p.pet_id === pid)
     setForm(f => ({ ...f, pet_id: e.target.value, owner_id: pet?.owner_id?.toString() || f.owner_id }))
   }
 
-  // Auto-fill consult fee when doctor selected
   const handleDocChange = (e) => {
     const doc = doctors.find(d => d.doctor_id === parseInt(e.target.value))
     setForm(f => ({ ...f, doctor_id: e.target.value, consult_fee: doc?.consultation_fee || f.consult_fee }))
@@ -122,7 +175,6 @@ export default function ConsultationForm() {
 
   const set = k => e => setForm(f => ({ ...f, [k]: e.target.value }))
 
-  // ── Procedures ─────────────────────────────────────────────
   const addProcedure = (procId) => {
     const proc = procMaster.find(p => p.procedure_id === parseInt(procId))
     if (!proc) return
@@ -132,38 +184,66 @@ export default function ConsultationForm() {
 
   const removeProcedure = (idx) => setProcedures(prev => prev.filter((_, i) => i !== idx))
 
-  // ── Rx Items ───────────────────────────────────────────────
   const addRxItem  = () => setRxItems(prev => [...prev, { ...EMPTY_RX_ITEM }])
   const removeItem = (idx) => setRxItems(prev => prev.filter((_, i) => i !== idx))
-  const setItem    = (idx, key, val) => setRxItems(prev => prev.map((item, i) => i === idx ? { ...item, [key]: val } : item))
+  
+  const setItem = (idx, key, val) => {
+    setRxItems(prev => prev.map((item, i) => {
+      if (i !== idx) return item;
+      const updated = { ...item, [key]: val };
+      
+      // Auto-calculate quantity if dose, frequency, or days changes
+      if (['dose', 'frequency', 'duration_days'].includes(key)) {
+        updated.quantity = calculateQty(updated.dose, updated.frequency, updated.duration_days);
+      }
+      return updated;
+    }))
+  }
+  
+  const selectMedicine = (idx, med) => {
+      setRxItems(prev => prev.map((item, i) => {
+          if (i !== idx) return item;
+          const updated = {
+              ...item,
+              medicine_name: med.medicine_name,
+              dosage_form: med.dosage_form || '',
+              strength: med.strength || '',
+          };
+          updated.quantity = calculateQty(updated.dose, updated.frequency, updated.duration_days);
+          return updated;
+      }));
+      setActiveSearchIndex(null);
+  }
 
-  // ── Save ───────────────────────────────────────────────────
   const handleSave = async (e) => {
     e.preventDefault()
     if (!form.pet_id || !form.doctor_id) return toast.error('Pet and Doctor are required')
     setSaving(true)
     try {
-    const payload = {
-      consult_date: form.consult_date,
-      consult_time: form.consult_time,
-      appointment_id: form.appointment_id ? parseInt(form.appointment_id) : null,
-      pet_id:       parseInt(form.pet_id) || 0,
-      owner_id:     parseInt(form.owner_id) || 0,
-      doctor_id:    parseInt(form.doctor_id) || 0,
-      visit_type:   form.visit_type || 'OPD',
-      chief_complaint: form.chief_complaint || null,
-      temp_celsius: form.temp_celsius ? parseFloat(form.temp_celsius) : null,
-      weight_kg:    form.weight_kg    ? parseFloat(form.weight_kg)    : null,
-      heart_rate:   form.heart_rate && !isNaN(form.heart_rate) ? parseInt(form.heart_rate) : null,
-      resp_rate:    form.resp_rate && !isNaN(form.resp_rate) ? parseInt(form.resp_rate) : null,
-      clinical_notes: form.clinical_notes || null,
-      diagnosis:      form.diagnosis || null,
-      advice:         form.advice || null,
-      followup_date:  form.followup_date || null,
-      followup_notes: form.followup_notes || null,
-      consult_fee:    form.consult_fee ? parseFloat(form.consult_fee) : 0,
-      procedures: (procedures || []).map(p => ({ procedure_id: p.procedure_id, quantity: p.quantity || 1, fee: p.fee }))
-    }
+      // Append :00 to time to satisfy Pydantic fully if missing
+      const cTime = form.consult_time.length === 5 ? form.consult_time + ':00' : form.consult_time;
+      
+      const payload = {
+        consult_date: form.consult_date,
+        consult_time: cTime,
+        appointment_id: form.appointment_id ? parseInt(form.appointment_id) : null,
+        pet_id:       parseInt(form.pet_id) || 0,
+        owner_id:     parseInt(form.owner_id) || 0,
+        doctor_id:    parseInt(form.doctor_id) || 0,
+        visit_type:   form.visit_type || 'OPD',
+        chief_complaint: form.chief_complaint || null,
+        temp_celsius: form.temp_celsius ? parseFloat(form.temp_celsius) : null,
+        weight_kg:    form.weight_kg    ? parseFloat(form.weight_kg)    : null,
+        heart_rate:   form.heart_rate && !isNaN(form.heart_rate) ? parseInt(form.heart_rate) : null,
+        resp_rate:    form.resp_rate && !isNaN(form.resp_rate) ? parseInt(form.resp_rate) : null,
+        clinical_notes: form.clinical_notes || null,
+        diagnosis:      form.diagnosis || null,
+        advice:         form.advice || null,
+        followup_date:  form.followup_date || null,
+        followup_notes: form.followup_notes || null,
+        consult_fee:    form.consult_fee ? parseFloat(form.consult_fee) : 0,
+        procedures: (procedures || []).map(p => ({ procedure_id: p.procedure_id, quantity: p.quantity || 1, fee: p.fee }))
+      }
       let consultId = id
       if (isEdit) {
         await api.put(`/consultations/${id}`, payload)
@@ -176,7 +256,6 @@ export default function ConsultationForm() {
         navigate(`/consultations/${consultId}`, { replace: true })
       }
 
-      // Save Rx if items exist
       if (rxItems.length > 0) {
         const rxPayload = {
           consult_id: parseInt(consultId), pet_id: parseInt(form.pet_id),
@@ -229,13 +308,15 @@ export default function ConsultationForm() {
     </div>
   )
 
-  const petMap   = Object.fromEntries((pets || []).map(p => [p.pet_id, p]))
-  const ownerMap = Object.fromEntries((owners || []).map(o => [o.owner_id, o]))
   const isClosed = consultation?.status === 'Closed' || consultation?.status === 'Billed'
+  
+  const selectedPet = form.pet_id ? pets.find(p => p.pet_id === parseInt(form.pet_id)) : null
+  const petSpecies = selectedPet ? species.find(s => s.species_id === selectedPet.species_id)?.species_name : ''
+  const petBreed = selectedPet ? breeds.find(b => b.breed_id === selectedPet.breed_id)?.breed_name : ''
+  const petAge = selectedPet ? `${selectedPet.age_years || 0}y ${selectedPet.age_months || 0}m` : ''
 
   return (
-    <div className="max-w-4xl space-y-4">
-      {/* Header */}
+    <div className="max-w-4xl space-y-4 pb-20">
       <div className="flex items-center justify-between">
         <div>
           <h2 className="font-bold text-slate-800">
@@ -255,7 +336,7 @@ export default function ConsultationForm() {
             </button>
           )}
           {isEdit && !isClosed && (
-            <button onClick={handleClose} className="btn-secondary flex items-center gap-2 text-green-600">
+            <button type="button" onClick={handleClose} className="btn-secondary flex items-center gap-2 text-green-600">
               <CheckCircle size={15} /> Close Consultation
             </button>
           )}
@@ -268,10 +349,9 @@ export default function ConsultationForm() {
       </div>
 
       <form onSubmit={handleSave}>
-        {/* Patient Info */}
         <div className="card mb-4">
           <h3 className="font-semibold text-slate-700 mb-4 text-sm">Patient Information</h3>
-          <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
+          <div className="grid grid-cols-2 md:grid-cols-3 gap-4 mb-4">
             <div>
               <label className="label">Pet *</label>
               <select className="input-field" value={form.pet_id} onChange={handlePetChange} disabled={isClosed}>
@@ -308,9 +388,17 @@ export default function ConsultationForm() {
               </select>
             </div>
           </div>
+          
+          {selectedPet && (
+            <div className="p-3 bg-slate-50 border border-slate-100 rounded-xl grid grid-cols-2 md:grid-cols-4 gap-4">
+                <div><span className="text-[10px] uppercase font-bold text-slate-400">Species</span><p className="text-sm font-semibold text-slate-700">{petSpecies || 'Unknown'}</p></div>
+                <div><span className="text-[10px] uppercase font-bold text-slate-400">Breed</span><p className="text-sm font-semibold text-slate-700">{petBreed || 'Unknown'}</p></div>
+                <div><span className="text-[10px] uppercase font-bold text-slate-400">Age</span><p className="text-sm font-semibold text-slate-700">{petAge}</p></div>
+                <div><span className="text-[10px] uppercase font-bold text-slate-400">Sex</span><p className="text-sm font-semibold text-slate-700">{selectedPet.gender || 'Unknown'}</p></div>
+            </div>
+          )}
         </div>
 
-        {/* Tabs */}
         <div className="flex gap-1 bg-slate-100 rounded-xl p-1 w-fit mb-4">
           {['vitals', 'notes', 'procedures', 'prescription', 'followup'].map(t => (
             <button key={t} type="button" onClick={() => setActiveTab(t)}
@@ -322,7 +410,6 @@ export default function ConsultationForm() {
           ))}
         </div>
 
-        {/* Vitals */}
         {activeTab === 'vitals' && (
           <div className="card space-y-4">
             <div>
@@ -339,7 +426,6 @@ export default function ConsultationForm() {
           </div>
         )}
 
-        {/* Notes & Diagnosis */}
         {activeTab === 'notes' && (
           <div className="card space-y-4">
             <div><label className="label">Clinical Notes / Examination Findings</label><textarea className="input-field resize-none" rows={4} value={form.clinical_notes} onChange={set('clinical_notes')} disabled={isClosed} placeholder="Physical examination findings, observations..." /></div>
@@ -348,7 +434,6 @@ export default function ConsultationForm() {
           </div>
         )}
 
-        {/* Procedures */}
         {activeTab === 'procedures' && (
           <div className="card space-y-4">
             {!isClosed && (
@@ -383,10 +468,8 @@ export default function ConsultationForm() {
           </div>
         )}
 
-        {/* Prescription (Rx) */}
-        {/* TODO Stage 7: Link search to Pharmacy/Stock module for inventory deduction */}
         {activeTab === 'prescription' && (
-          <div className="card space-y-4">
+          <div className="card space-y-4 overflow-visible">
             <div className="flex items-center justify-between">
               <h3 className="font-semibold text-slate-700 text-sm flex items-center gap-2">
                 <FileText size={16} className="text-primary-500" />
@@ -400,9 +483,35 @@ export default function ConsultationForm() {
             ) : (
               <div className="space-y-3">
                 {rxItems.map((item, i) => (
-                  <div key={i} className="border border-slate-100 rounded-xl p-3 bg-slate-50/50">
+                  <div key={i} className="border border-slate-100 rounded-xl p-3 bg-slate-50/50 relative">
                     <div className="grid grid-cols-2 md:grid-cols-4 gap-2 mb-2">
-                      <div className="md:col-span-2"><label className="label">Medicine Name *</label><input className="input-field py-1.5 text-xs" value={item.medicine_name} onChange={e => setItem(i, 'medicine_name', e.target.value)} disabled={isClosed} placeholder="e.g. Amoxicillin" /></div>
+                      <div className="md:col-span-2 relative">
+                        <label className="label">Medicine Name *</label>
+                        <input className="input-field py-1.5 text-xs" value={item.medicine_name} 
+                            onChange={e => {
+                                setItem(i, 'medicine_name', e.target.value);
+                                if (e.target.value.length >= 2) setActiveSearchIndex(i);
+                                else setActiveSearchIndex(null);
+                            }} 
+                            disabled={isClosed} placeholder="e.g. Amoxicillin" 
+                            onFocus={() => { if (item.medicine_name.length >= 2) setActiveSearchIndex(i) }}
+                            onBlur={() => setTimeout(() => setActiveSearchIndex(null), 200)}
+                        />
+                        {activeSearchIndex === i && item.medicine_name.length >= 2 && (
+                            <div className="absolute z-50 w-full mt-1 bg-white border border-slate-200 rounded-lg shadow-xl max-h-48 overflow-y-auto">
+                                {medicines.filter(m => m.medicine_name.toLowerCase().includes(item.medicine_name.toLowerCase())).map(m => (
+                                    <div key={m.medicine_id} className="p-2 hover:bg-slate-50 cursor-pointer text-sm flex flex-col"
+                                         onMouseDown={() => selectMedicine(i, m)}>
+                                        <span className="font-semibold text-slate-800">{m.medicine_name}</span>
+                                        <span className="text-[10px] text-slate-500">Stock: {m.current_stock || 0}</span>
+                                    </div>
+                                ))}
+                                {medicines.filter(m => m.medicine_name.toLowerCase().includes(item.medicine_name.toLowerCase())).length === 0 && (
+                                    <div className="p-2 text-xs text-slate-400 bg-slate-50 rounded-b-lg">No matching medicines in Master</div>
+                                )}
+                            </div>
+                        )}
+                      </div>
                       <div><label className="label">Form</label>
                         <select className="input-field py-1.5 text-xs" value={item.dosage_form} onChange={e => setItem(i, 'dosage_form', e.target.value)} disabled={isClosed}>
                           <option value="">-</option>{FORM_OPTIONS.map(o => <option key={o}>{o}</option>)}
@@ -437,7 +546,6 @@ export default function ConsultationForm() {
           </div>
         )}
 
-        {/* Follow-up */}
         {activeTab === 'followup' && (
           <div className="card space-y-4">
             <div><label className="label">Follow-up Date</label><input className="input-field w-48" type="date" value={form.followup_date} onChange={set('followup_date')} disabled={isClosed} /></div>

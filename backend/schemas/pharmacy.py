@@ -62,6 +62,8 @@ class MedicineBase(BaseModel):
     gst_rate_id: Optional[int] = None
     unit_id: Optional[int] = None
     reorder_level: Decimal = Decimal("0")
+    dosage_form: Optional[str] = None
+    strength: Optional[str] = None
     is_active: bool = True
 
 class MedicineCreate(MedicineBase):
@@ -69,6 +71,8 @@ class MedicineCreate(MedicineBase):
 
 class MedicineOut(MedicineBase):
     medicine_id: int
+    dosage_form: Optional[str] = None
+    strength: Optional[str] = None
     current_stock: Decimal
     gst_pct: Optional[Decimal] = None
     created_at: datetime

@@ -32,15 +32,13 @@ const navGroups = [
       { to: '/users', icon: UserCog, label: 'User Management' },
     ]
   },
-  /*
-  // ─── FUTURE PHASES (Commented out for Phase 1 Go-Live) ───
+  // ─── FUTURE PHASES ───
   {
     label: 'Phase 2 — Clinical',
     items: [
-    
+      { to: '/appointments',   icon: CalendarDays,   label: 'Appointments' },
       { to: '/consultations',  icon: ClipboardList,  label: 'Consultations' },
       { to: '/procedures',     icon: Stethoscope,    label: 'Procedures' },
-      
     ]
   },
   {
@@ -55,10 +53,8 @@ const navGroups = [
     label: 'Phase 4 — Accounts',
     items: [
       { to: '/ledger',       icon: BookOpen,     label: 'Chart of Accounts' },
-      
     ]
   },
-  */
 ]
 
 export default function Sidebar({ isOpen = true }) {

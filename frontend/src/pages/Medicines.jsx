@@ -18,6 +18,8 @@ export default function Medicines() {
   const [formData, setFormData] = useState({
     medicine_name: '',
     medicine_name2: '',
+    dosage_form: '',
+    strength: '',
     hsn_id: '',
     gst_rate_id: '',
     unit_id: '',
@@ -65,6 +67,8 @@ export default function Medicines() {
       setFormData({
         medicine_name: med.medicine_name,
         medicine_name2: med.medicine_name2 || '',
+        dosage_form: med.dosage_form || '',
+        strength: med.strength || '',
         hsn_id: med.hsn_id || '',
         gst_rate_id: med.gst_rate_id || '',
         unit_id: med.unit_id || '',
@@ -76,6 +80,8 @@ export default function Medicines() {
       setFormData({
         medicine_name: '',
         medicine_name2: '',
+        dosage_form: '',
+        strength: '',
         hsn_id: '',
         gst_rate_id: '',
         unit_id: '',
@@ -148,9 +154,9 @@ export default function Medicines() {
             <tr>
               <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Code</th>
               <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Medicine Name</th>
-              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Category/Generic</th>
+              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Form</th>
+              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Strength</th>
               <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Stock</th>
-              <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Min Stock</th>
               <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider">Status</th>
               <th className="px-6 py-4 text-xs font-semibold text-gray-500 uppercase tracking-wider text-right">Actions</th>
             </tr>
@@ -163,13 +169,13 @@ export default function Medicines() {
                   <div className="text-sm font-semibold text-gray-900">{med.medicine_name}</div>
                   <div className="text-xs text-gray-400">{med.medicine_name2}</div>
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-600">{med.dosage_form || 'N/A'}</td>
+                <td className="px-6 py-4 text-sm text-gray-600">{med.dosage_form || '-'}</td>
+                <td className="px-6 py-4 text-sm text-gray-600">{med.strength || '-'}</td>
                 <td className="px-6 py-4">
                   <span className={`text-sm font-bold ${med.current_stock <= med.reorder_level ? 'text-red-500' : 'text-emerald-500'}`}>
                     {med.current_stock}
                   </span>
                 </td>
-                <td className="px-6 py-4 text-sm text-gray-500">{med.reorder_level}</td>
                 <td className="px-6 py-4">
                   <span className={`px-2 py-1 text-xs rounded-full ${med.is_active ? 'bg-emerald-100 text-emerald-700' : 'bg-red-100 text-red-700'}`}>
                     {med.is_active ? 'Active' : 'Inactive'}
@@ -219,6 +225,31 @@ export default function Medicines() {
                     className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
                     value={formData.medicine_name2}
                     onChange={e => setFormData({...formData, medicine_name2: e.target.value})}
+                  />
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Dosage Form</label>
+                  <select
+                    className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    value={formData.dosage_form}
+                    onChange={e => setFormData({...formData, dosage_form: e.target.value})}
+                  >
+                    <option value="">Select Form</option>
+                    {['Tablet','Capsule','Syrup','Injection','Drops','Ointment','Powder','Cream','Gel','Spray'].map(f => (
+                      <option key={f} value={f}>{f}</option>
+                    ))}
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-xs font-bold text-gray-500 uppercase mb-1">Strength / Dosage</label>
+                  <input
+                    type="text"
+                    placeholder="e.g. 500mg, 250ml, 5mg/5ml"
+                    className="w-full border border-gray-200 rounded-lg px-4 py-2 focus:ring-2 focus:ring-indigo-500 outline-none"
+                    value={formData.strength}
+                    onChange={e => setFormData({...formData, strength: e.target.value})}
                   />
                 </div>
 

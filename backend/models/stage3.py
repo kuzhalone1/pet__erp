@@ -24,6 +24,8 @@ class Medicine(Base):
     unit_id        = Column(Integer, ForeignKey("units.unit_id"))
     reorder_level  = Column(Numeric(10,2), default=0)
     current_stock  = Column(Numeric(10,2), default=0)            # auto-updated
+    dosage_form    = Column(String(50), nullable=True)  # e.g., Tablet, Syrup
+    strength       = Column(String(50), nullable=True)  # e.g., 500mg
     is_active      = Column(Boolean, default=True)
     created_at     = Column(DateTime, default=func.now())
     updated_at     = Column(DateTime, default=func.now(), onupdate=func.now())
