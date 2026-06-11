@@ -52,7 +52,11 @@ VALUES
     ('PROCEDURE', 'PRC', 0, 4, false, '', false),
     ('AGT', 'AGT', 0, 4, false, '', false),
     ('VRC', 'VRC', 0, 4, true, '2526', true),
-    ('VC',  'VC',  0, 4, false, '', false)
+    ('VC',  'VC',  0, 4, false, '', false),
+    ('AD',  'AD-', 0, 5, true,  '2526', true),  -- Advance Payments: AD-252600001
+    ('BA',  'BA-', 0, 5, true,  '2526', true),  -- Bank Arrivals: BA-252600001
+    ('RV',  'RV-', 0, 5, true,  '2526', true),  -- Receipt Vouchers: RV-252600001
+    ('PV',  'PV-', 0, 5, true,  '2627', true)   -- Payment Vouchers: PV-262700001
 ON CONFLICT (doc_type) DO NOTHING;
 
 -- ============================================================

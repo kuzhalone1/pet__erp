@@ -33,6 +33,15 @@ def get_next_doc_no(db: Session, doc_type: str) -> str:
     return row[0]
 
 
+def format_fy(fy_code: str) -> str:
+    """Format YYYY-YY (e.g. 2025-26) to YY/YY (e.g. 2526) to fit in fin_year column."""
+    if not fy_code:
+        return ""
+    fy = fy_code.replace("-", "")
+    return fy[2:] if len(fy) > 4 else fy
+
+
+
 def get_sequence_info(db: Session, doc_type: str) -> dict:
     """Get current sequence state for a doc_type (for admin panel)."""
     result = db.execute(
@@ -123,38 +132,45 @@ def init_sequences_for_db(company_engine):
 
         # 2. Seed all required document types
         seeds = [
-            ('APT', 'APT', 0, 4, True, '2526', True),
-            ('CON', 'CON', 0, 4, True, '2526', True),
-            ('RX',  'RX',  0, 4, True, '2526', True),
-            ('VAC', 'VAC', 0, 4, False, '', False),
-            ('PUR', 'PUR', 0, 4, True, '2526', True),
-            ('PHM', 'PHM', 0, 4, True, '2526', True),
-            ('BIL', 'BIL', 0, 4, True, '2526', True),
-            ('REC', 'REC', 0, 4, True, '2526', True),
-            ('VCH', 'VCH', 0, 4, True, '2526', True),
-            ('SUP', 'SUP', 0, 4, False, '', False),
-            ('MED', 'MED', 0, 4, False, '', False),
-            ('OWN', 'OWN', 0, 4, False, '', False),
-            ('PET', 'PET', 0, 4, False, '', False),
-            ('DOC', 'DOC', 0, 4, False, '', False),
-            ('STA', 'STA', 0, 4, False, '', False),
-            ('AGE', 'AGE', 0, 4, False, '', False),
-            ('SRV', 'SRV', 0, 4, False, '', False),
-            ('SB',  'SB',  0, 4, True, '2526', True),
-            ('PB',  'PB',  0, 4, True, '2526', True),
-            ('OWNGL', 'OWNGL', 0, 4, False, '', False),
-            ('SUPGL', 'SUPGL', 0, 4, False, '', False),
-            ('DOCGL', 'DOCGL', 0, 4, False, '', False),
-            ('STAGL', 'STAGL', 0, 4, False, '', False),
-            ('AGEGL', 'AGEGL', 0, 4, False, '', False),
+            ('APT', 'APT', 0, 4, True, '2627', True),   # Appointments: APT26270001
+            ('CON', 'CON', 0, 4, True, '2627', True),   # Consultations: CON26270001
+            ('RX',  'RX',  0, 4, True, '2627', True),   # Prescriptions: RX26270001
+            ('VAC', 'VAC', 0, 4, True, '2627', True),   # Vaccine Master: VAC26270001
+            ('PUR', 'PUR', 0, 4, True, '2627', True),   # Purchase Bills: PUR26270001
+            ('PHM', 'PHM', 0, 4, True, '2627', True),   # Pharmacy Bills: PHM26270001
+            ('BIL', 'BIL', 0, 4, True, '2627', True),   # Sales Bills: BIL26270001
+            ('REC', 'REC', 0, 4, True, '2627', True),   # Receipt Vouchers: REC26270001
+            ('VCH', 'VCH', 0, 4, True, '2627', True),   # Vouchers: VCH26270001
+            ('SUP', 'SUP', 0, 4, False, '', False),      # Suppliers: SUP0001
+            ('MED', 'MED', 0, 4, False, '', False),      # Medicine (legacy): MED0001
+            ('OWN', 'OWN', 0, 4, False, '', False),      # Pet Owners: OWN0001
+            ('PET', 'PET', 0, 4, False, '', False),      # Pets: PET0001
+            ('DOC', 'DOC', 0, 4, False, '', False),      # Doctors (legacy): DOC0001
+            ('STA', 'STA', 0, 4, False, '', False),      # Staff (legacy): STA0001
+            ('AGE', 'AGE', 0, 4, False, '', False),      # Agents (legacy): AGE0001
+            ('SRV', 'SRV', 0, 4, False, '', False),      # Services: SRV0001
+            ('SB',  'SB',  0, 4, True, '2627', True),   # Sales Bills alt: SB26270001
+            ('PB',  'PB',  0, 4, True, '2627', True),   # Purchase Bills alt: PB26270001
+            ('OWNGL',  'OWNGL',  0, 4, False, '', False), # Owner GL accounts
+            ('SUPGL',  'SUPGL',  0, 4, False, '', False), # Supplier GL accounts
+            ('DOCGL',  'DOCGL',  0, 4, False, '', False), # Doctor GL accounts
+            ('STAGL',  'STAGL',  0, 4, False, '', False), # Staff GL accounts
+            ('AGEGL',  'AGEGL',  0, 4, False, '', False), # Agent GL accounts
             # Route-specific document type seeds
-            ('DR', 'DR', 0, 4, False, '', False),
-            ('ST', 'ST', 0, 4, False, '', False),
-            ('MEDICINE', 'MED', 0, 4, False, '', False),
-            ('PROCEDURE', 'PRC', 0, 4, False, '', False),
-            ('AGT', 'AGT', 0, 4, False, '', False),
-            ('VRC', 'VRC', 0, 4, True, '2526', True),
-            ('VC',  'VC',  0, 4, False, '', False),
+            ('DR',        'DR',  0, 4, False, '', False), # Doctors route: DR0001
+            ('ST',        'ST',  0, 4, False, '', False), # Staff route: ST0001
+            ('MEDICINE',  'MED', 0, 4, False, '', False), # Medicines route: MED0001
+            ('PROCEDURE', 'PRC', 0, 4, False, '', False), # Procedures: PRC0001
+            ('AGT',       'AGT', 0, 4, False, '', False), # Agents route: AGT0001
+            ('VRC', 'VRC', 0, 4, True, '2627', True),   # Vaccination Records: VRC26270001
+            ('VC',  'VC',  0, 4, False, '', False),      # Vaccination Code: VC0001
+            ('AD',  'AD-', 0, 5, True,  '2627', True),  # Advance Payments: AD-262700001
+            ('BA',  'BA-', 0, 5, True,  '2627', True),  # Bank Arrivals: BA-262700001
+            ('RV',  'RV-', 0, 5, True,  '2627', True),  # Receipt Vouchers: RV-262700001
+            ('PV',  'PV-', 0, 5, True,  '2627', True),  # Payment Vouchers: PV-262700001
+            ('JV',  'JV-', 0, 5, True,  '2627', True),  # Journal Vouchers: JV-262700001
+            ('DN',  'DN-', 0, 5, True,  '2627', True),  # Debit Notes: DN-262700001
+            ('CN',  'CN-', 0, 5, True,  '2627', True),  # Credit Notes: CN-262700001
         ]
 
 

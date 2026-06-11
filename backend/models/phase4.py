@@ -117,23 +117,6 @@ class BillingItem(Base):
     ref_id         = Column(Integer)
 
 
-class ReceiptVoucher(Base):
-    __tablename__ = "receipt_vouchers"
-    receipt_id   = Column(Integer, primary_key=True)
-    fy_code      = Column(String(10), ForeignKey("financial_years.fy_code"), nullable=True, index=True)
-    receipt_no   = Column(String, unique=True, nullable=False)
-    receipt_date = Column(Date, nullable=False)
-    billing_id   = Column(Integer, ForeignKey("billing_master.billing_id"), nullable=False)
-    owner_id     = Column(Integer, ForeignKey("pet_owners.owner_id"), nullable=False)
-    amount       = Column(Numeric(12, 2), nullable=False)
-    payment_mode = Column(String, nullable=False)
-    reference_no = Column(String)
-    gl_dr_id     = Column(Integer, ForeignKey("gl_master.gl_id"))
-    gl_cr_id     = Column(Integer, ForeignKey("gl_master.gl_id"))
-    narration    = Column(Text)
-    created_by   = Column(Integer, ForeignKey("users.user_id"))
-    created_at   = Column(DateTime, default=func.now())
-
 
 class Voucher(Base):
     __tablename__ = "vouchers"

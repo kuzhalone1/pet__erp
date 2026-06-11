@@ -24,6 +24,14 @@ from routes.users import router as users_router
 from routes.billing import router as billing_router
 from routes.services import router as services_router
 from routes.companies import router as companies_router
+from routes.advance_payments import router as advance_payments_router
+from routes.bank_arrivals import router as bank_arrivals_router
+from routes.receipt_vouchers import router as receipt_vouchers_router
+from routes.payment_vouchers import router as payment_vouchers_router
+from routes.journal_vouchers import router as journal_vouchers_router
+from routes.credit_notes import router as credit_notes_router
+from routes.debit_notes import router as debit_notes_router
+from routes.reports import router as reports_router
 
 # ─── Ensure Master Database Exists Before Creating Tables ─────────────────
 try:
@@ -53,14 +61,14 @@ try:
     try:
         # Tenant
         if not m_db.query(Tenant).filter_by(tenant_id=1).first():
-            m_db.add(Tenant(tenant_id=1, tenant_name="Default Tenant", email="admin@petclinicerp.com", password_hash="$2b$12$.OTMdc4ivJApNDSoFAOgnevbFmic/bRFAFJi80iY5jI70n0FpcUw."))
+            m_db.add(Tenant(tenant_id=1, tenant_name="Default Tenant", email="admin@petclinicerp.com", password_hash="$2b$12$3HQ7TYW3eaDm.JBWjwnafOTGDWsqXHPqpc7RkvJ9wjni9XNiHAyu6"))
             m_db.commit()
             
         # MasterUser
         if not m_db.query(MasterUser).filter_by(email="admin@petclinicerp.com").first():
             m_db.add(MasterUser(
                 tenant_id=1, full_name="System Admin", email="admin@petclinicerp.com",
-                password_hash="$2b$12$.OTMdc4ivJApNDSoFAOgnevbFmic/bRFAFJi80iY5jI70n0FpcUw.", phone="1234567890", is_active=True
+                password_hash="$2b$12$3HQ7TYW3eaDm.JBWjwnafOTGDWsqXHPqpc7RkvJ9wjni9XNiHAyu6", phone="1234567890", is_active=True
             ))
             m_db.commit()
             
@@ -76,14 +84,36 @@ try:
     finally:
         m_db.close()
         
-    # 2. Seed Company User (admin / admin123)
+    # 2. Seed Company User (admin / admin123) and default Financial Years
     c_db = SessionLocal()
     try:
         if not c_db.query(User).filter_by(username="admin").first():
             c_db.add(User(
-                username="admin", password_hash="$2b$12$.OTMdc4ivJApNDSoFAOgnevbFmic/bRFAFJi80iY5jI70n0FpcUw.",
+                username="admin", password_hash="$2b$12$3HQ7TYW3eaDm.JBWjwnafOTGDWsqXHPqpc7RkvJ9wjni9XNiHAyu6",
                 full_name="System Administrator", role="Admin", email="admin@petclinic.com", is_active=True
             ))
+            c_db.commit()
+        
+        from models.phase4 import FinancialYear
+        from datetime import date
+        if not c_db.query(FinancialYear).first():
+            fys = [
+                FinancialYear(fy_code="2023-24", start_date=date(2023, 4, 1), end_date=date(2024, 3, 31), is_current=False),
+                FinancialYear(fy_code="2024-25", start_date=date(2024, 4, 1), end_date=date(2025, 3, 31), is_current=False),
+                FinancialYear(fy_code="2025-26", start_date=date(2025, 4, 1), end_date=date(2026, 3, 31), is_current=False),
+                FinancialYear(fy_code="2026-27", start_date=date(2026, 4, 1), end_date=date(2027, 3, 31), is_current=True),
+            ]
+            c_db.add_all(fys)
+            c_db.commit()
+        else:
+            # Ensure 2026-27 is marked as current (migrate from 2025-26 if needed)
+            fy_2627 = c_db.query(FinancialYear).filter_by(fy_code="2026-27").first()
+            if not fy_2627:
+                c_db.add(FinancialYear(fy_code="2026-27", start_date=date(2026, 4, 1), end_date=date(2027, 3, 31), is_current=True))
+            # Reset all others to non-current
+            c_db.query(FinancialYear).filter(FinancialYear.fy_code != "2026-27").update({"is_current": False})
+            if fy_2627:
+                fy_2627.is_current = True
             c_db.commit()
     finally:
         c_db.close()
@@ -116,11 +146,41 @@ try:
                             print(f"➕ Added missing column 'fy_code' to {t_name} in '{c_db_name}'.")
                         except Exception:
                             c_conn.rollback()  # Column already exists
+                    
+                # Auto-migrate dosage_form and strength columns if missing in medicines table
+                    try:
+                        c_conn.execute(text("ALTER TABLE medicines ADD COLUMN IF NOT EXISTS dosage_form VARCHAR(50)"))
+                        c_conn.execute(text("ALTER TABLE medicines ADD COLUMN IF NOT EXISTS strength VARCHAR(50)"))
+                        c_conn.commit()
+                        print(f"➕ Added missing dosage_form/strength columns to medicines in '{c_db_name}'.")
+                    except Exception:
+                        c_conn.rollback()  # Columns already exist
+                    
+                    # Auto-migrate fin_year from 2526 → 2627 for FY 2026-27
+                    try:
+                        c_conn.execute(text(
+                            "UPDATE doc_sequences SET fin_year = '2627' WHERE fin_year = '2526' AND use_fin_year = true"
+                        ))
+                        c_conn.commit()
+                        print(f"🔁 Migrated fin_year 2526→2627 in doc_sequences for '{c_db_name}'.")
+                    except Exception:
+                        c_conn.rollback()
                 print(f"✅ Company DB '{c_db_name}' sequences and migrations checked successfully.")
             except Exception as sub_e:
                 print(f"⚠️ Could not init sequences/migrations for '{c_db_name}': {sub_e}")
 except Exception as e:
     print(f"⚠️ Global sequence initialization check: {e}")
+
+# ─── Migrate primary DB fin_year 2526 → 2627 ───────────────────────────────
+try:
+    with engine.connect().execution_options(isolation_level="AUTOCOMMIT") as conn:
+        conn.execute(text(
+            "UPDATE doc_sequences SET fin_year = '2627' WHERE fin_year = '2526' AND use_fin_year = true"
+        ))
+    print("🔁 Primary DB: Migrated fin_year 2526→2627 in doc_sequences.")
+except Exception as e:
+    print(f"⚠️ Primary DB fin_year migration: {e}")
+
 
 # ─── Auto-Migrate Master DB Columns if missing ──────────────────────────────
 try:
@@ -197,6 +257,15 @@ app.include_router(billing_router)
 app.include_router(services_router)
 # Master System — Companies
 app.include_router(companies_router)
+# Phase 4 — Accounts
+app.include_router(advance_payments_router)
+app.include_router(bank_arrivals_router)
+app.include_router(receipt_vouchers_router)
+app.include_router(payment_vouchers_router)
+app.include_router(journal_vouchers_router)
+app.include_router(credit_notes_router)
+app.include_router(debit_notes_router)
+app.include_router(reports_router)
 
 
 # ─── Health Check Endpoint ───────────────────────────────────────────────────

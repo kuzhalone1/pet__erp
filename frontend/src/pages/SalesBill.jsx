@@ -6,6 +6,7 @@ import {
   Calendar, ShoppingBag, ArrowRight, CheckCircle2
 } from 'lucide-react'
 import api from '../api'
+import SalesBillPrint from '../components/SalesBillPrint'
 
 const EMPTY_LINE = { 
   id: Date.now(), 
@@ -31,6 +32,8 @@ export default function SalesBill() {
   const [saving, setSaving] = useState(false)
   const [editingBillId, setEditingBillId] = useState(null)
   const [searchNo, setSearchNo] = useState('')
+  const [showPrint, setShowPrint] = useState(false)
+  const [printBillData, setPrintBillData] = useState(null)
 
   const [form, setForm] = useState({
     bill_date: new Date().toISOString().split('T')[0],
@@ -163,14 +166,21 @@ export default function SalesBill() {
 
       const payload = { ...form, items }
 
+      let savedBill = null
       if (editingBillId) {
-        await api.put(`/billing/sales/${editingBillId}`, payload)
+        const res = await api.put(`/billing/sales/${editingBillId}`, payload)
         toast.success('Bill updated successfully!')
+        savedBill = res.data
       } else {
         const res = await api.post('/billing/sales/confirm', payload)
         toast.success(`Bill Generated: ${res.data.bill_number}`)
+        savedBill = res.data
       }
       resetForm()
+      if (savedBill) {
+        setPrintBillData(savedBill)
+        setShowPrint(true)
+      }
       setActiveTab('history')
     } catch (err) {
       toast.error(err.response?.data?.detail || 'Error saving bill')
@@ -522,7 +532,15 @@ export default function SalesBill() {
                       <td className="px-6 py-4 text-right">
                         <div className="flex items-center justify-end gap-1">
                           <button onClick={() => handleEdit(bill)} className="p-2 text-slate-300 hover:text-amber-600 hover:bg-amber-50 rounded-lg transition-all"><Edit2 size={16}/></button>
-                          <button className="p-2 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"><Printer size={16}/></button>
+                          <button 
+                            onClick={() => {
+                              setPrintBillData(bill)
+                              setShowPrint(true)
+                            }}
+                            className="p-2 text-slate-300 hover:text-indigo-600 hover:bg-indigo-50 rounded-lg transition-all"
+                          >
+                            <Printer size={16}/>
+                          </button>
                           <button onClick={() => handleDelete(bill.bill_id)} className="p-2 text-slate-300 hover:text-rose-600 hover:bg-rose-50 rounded-lg transition-all"><Trash2 size={16}/></button>
                         </div>
                       </td>
@@ -533,6 +551,19 @@ export default function SalesBill() {
             </div>
           </div>
         </div>
+      )}
+
+      {showPrint && printBillData && (
+        <SalesBillPrint 
+          bill={printBillData}
+          owners={owners}
+          pets={pets}
+          doctors={doctors}
+          onClose={() => {
+            setShowPrint(false)
+            setPrintBillData(null)
+          }}
+        />
       )}
     </div>
   )

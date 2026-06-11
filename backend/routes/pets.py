@@ -5,19 +5,10 @@ from typing import List, Optional
 from database import get_db
 from models.people import Pet
 from schemas.pets import PetCreate, PetUpdate, PetOut
+from utils.doc_sequence import get_next_doc_no
 
 router = APIRouter(prefix="/pets", tags=["Pets"])
 
-
-def generate_pet_code(db: Session) -> str:
-    last = db.query(Pet).order_by(Pet.pet_id.desc()).first()
-    if not last:
-        return "PET001"
-    try:
-        num = int(last.pet_code.replace("PET", "")) + 1
-    except Exception:
-        num = last.pet_id + 1
-    return f"PET{num:03d}"
 
 
 @router.get("", response_model=List[PetOut])
@@ -55,8 +46,10 @@ def get_pet(pet_id: int, db: Session = Depends(get_db)):
 
 @router.post("", response_model=PetOut)
 def create_pet(data: PetCreate, db: Session = Depends(get_db)):
-    code = generate_pet_code(db)
-    pet = Pet(pet_code=code, **data.model_dump())
+    payload = data.model_dump()
+    if not payload.get("pet_code"):
+        payload["pet_code"] = get_next_doc_no(db, "PET")
+    pet = Pet(**payload)
     db.add(pet)
     db.commit()
     db.refresh(pet)

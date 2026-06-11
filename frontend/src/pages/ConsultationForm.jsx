@@ -3,6 +3,7 @@ import { useParams, useNavigate, useSearchParams } from 'react-router-dom'
 import { toast } from 'react-hot-toast'
 import { Save, Plus, Trash2, CheckCircle, FileText, Printer, Search } from 'lucide-react'
 import api from '../api'
+import PrescriptionPrint from '../components/PrescriptionPrint'
 
 const VISIT_TYPES = ['OPD', 'Follow-Up', 'Emergency', 'Walk-In']
 const FREQ_OPTIONS = ['Morn/Eve', 'Mor', 'Eve', 'Afternoon', 'Once daily', 'Twice daily', 'Three times daily', 'Every 8 hours', 'Every 12 hours', 'As needed']
@@ -78,6 +79,7 @@ export default function ConsultationForm() {
   const [existingRx, setExistingRx]     = useState(null)
   const [activeTab, setActiveTab]       = useState('vitals')
   const [downloadingPdf, setDownloadingPdf] = useState(false)
+  const [showPrint, setShowPrint]       = useState(false)
   
   const [activeSearchIndex, setActiveSearchIndex] = useState(null)
 
@@ -328,11 +330,10 @@ export default function ConsultationForm() {
           {existingRx && (
             <button 
               type="button"
-              onClick={handleDownloadPdf} 
-              disabled={downloadingPdf}
+              onClick={() => setShowPrint(true)}
               className="btn-secondary flex items-center gap-2 text-primary-600"
             >
-              <Printer size={15} /> {downloadingPdf ? 'Generating...' : 'Print PDF'}
+              <Printer size={15} /> Print Rx
             </button>
           )}
           {isEdit && !isClosed && (
@@ -553,6 +554,29 @@ export default function ConsultationForm() {
           </div>
         )}
       </form>
+
+      {/* Prescription Print Modal */}
+      {showPrint && existingRx && (
+        <PrescriptionPrint
+          consultation={{
+            ...consultation,
+            doctor_id:    parseInt(form.doctor_id) || consultation?.doctor_id,
+            temp_celsius:  form.temp_celsius,
+            weight_kg:     form.weight_kg,
+            heart_rate:    form.heart_rate,
+            resp_rate:     form.resp_rate,
+            diagnosis:     form.diagnosis,
+            advice:        form.advice,
+            followup_date: form.followup_date,
+          }}
+          rxData={existingRx}
+          pet={selectedPet}
+          owner={owners.find(o => o.owner_id === parseInt(form.owner_id))}
+          species={petSpecies}
+          breed={petBreed}
+          onClose={() => setShowPrint(false)}
+        />
+      )}
     </div>
   )
 }

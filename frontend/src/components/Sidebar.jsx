@@ -4,7 +4,9 @@ import {
   Users, Stethoscope, LogOut, ChevronRight,
   CalendarDays, ClipboardList, Syringe, Pill,
   Package, ShoppingCart, Receipt,
-  BookOpen, Handshake, UserCog, Building2
+  BookOpen, Handshake, UserCog, Building2,
+  CreditCard, Banknote,
+  Stethoscope as StethoscopeIcon
 } from 'lucide-react'
 
 const navGroups = [
@@ -38,7 +40,7 @@ const navGroups = [
     items: [
       { to: '/appointments',   icon: CalendarDays,   label: 'Appointments' },
       { to: '/consultations',  icon: ClipboardList,  label: 'Consultations' },
-      { to: '/procedures',     icon: Stethoscope,    label: 'Procedures' },
+      { to: '/procedures',     icon: StethoscopeIcon,    label: 'Procedures' },
     ]
   },
   {
@@ -55,6 +57,20 @@ const navGroups = [
       { to: '/ledger',       icon: BookOpen,     label: 'Chart of Accounts' },
     ]
   },
+  {
+    label: 'Accounts',
+    items: [
+      { to: '/accounts/advance-payments', icon: CreditCard,      label: 'Advance Payments' },
+      { to: '/accounts/bank-arrivals',    icon: Banknote,        label: 'Bank Arrivals' },
+      { to: '/accounts/receipt-vouchers', icon: Receipt,         label: 'Receipt Voucher' },
+      { to: '/accounts/payment-vouchers', icon: CreditCard,      label: 'Payment Voucher' },
+      { to: '/accounts/journal-vouchers', icon: BookOpen,        label: 'Journal Voucher' },
+      { to: '/accounts/credit-notes',     icon: CreditCard,      label: 'Credit Note' },
+      { to: '/accounts/debit-notes',      icon: Banknote,        label: 'Debit Note' },
+      { to: '/reports/gst',               icon: CalendarDays,    label: 'GST Reports' },
+      { to: '/reports/accounts',          icon: BookOpen,        label: 'Accounts Reports' },
+    ]
+  }
 ]
 
 export default function Sidebar({ isOpen = true }) {

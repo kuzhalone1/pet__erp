@@ -23,6 +23,15 @@ import Ledger from './pages/Ledger'
 import Agents from './pages/Agents'
 import UsersPage from './pages/Users'
 import Companies from './pages/Companies'
+import AdvancePayments from './pages/AdvancePayments'
+import BankArrivals from './pages/BankArrivals'
+import ReceiptVoucher from './pages/ReceiptVoucher'
+import PaymentVoucher from './pages/PaymentVoucher'
+import JournalVoucher from './pages/JournalVoucher'
+import CreditNote from './pages/CreditNote'
+import DebitNote from './pages/DebitNote'
+import GSTReports from './pages/GSTReports'
+import AccountsReports from './pages/AccountsReports'
 
 function PrivateRoute({ children }) {
   const token = localStorage.getItem('token')
@@ -67,6 +76,15 @@ export default function App() {
         <Route path="ledger"               element={<Ledger />} />
         <Route path="agents"               element={<Agents />} />
         <Route path="users"                element={<UsersPage />} />
+        <Route path="accounts/advance-payments"    element={<AdvancePayments />} />
+        <Route path="accounts/bank-arrivals"       element={<BankArrivals />} />
+        <Route path="accounts/receipt-vouchers"   element={<ReceiptVoucher />} />
+        <Route path="accounts/payment-vouchers"   element={<PaymentVoucher />} />
+        <Route path="accounts/journal-vouchers"   element={<JournalVoucher />} />
+        <Route path="accounts/credit-notes"       element={<CreditNote />} />
+        <Route path="accounts/debit-notes"        element={<DebitNote />} />
+        <Route path="reports/gst"                 element={<GSTReports />} />
+        <Route path="reports/accounts"            element={<AccountsReports />} />
       </Route>
       <Route path="*" element={<Navigate to="/dashboard" replace />} />
     </Routes>

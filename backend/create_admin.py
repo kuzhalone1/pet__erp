@@ -71,7 +71,7 @@ def main():
         existing = cur.fetchone()
 
         # Use the provided bcrypt hash for admin123
-        hashed = '$2b$12$.OTMdc4ivJApNDSoFAOgnevbFmic/bRFAFJi80iY5jI70n0FpcUw.'
+        hashed = '$2b$12$3HQ7TYW3eaDm.JBWjwnafOTGDWsqXHPqpc7RkvJ9wjni9XNiHAyu6'
 
         if existing:
             # Update the hash (fixes bad hash from seed.sql)

@@ -19,6 +19,19 @@ class GLBase(BaseModel):
     sub_group:       Optional[str] = None
     opening_balance: Optional[Decimal] = Decimal("0")
     balance_type:    str = "DR"
+    phone:           Optional[str] = None
+    alt_phone:       Optional[str] = None
+    email:           Optional[str] = None
+    address1:        Optional[str] = None
+    address2:        Optional[str] = None
+    address3:        Optional[str] = None
+    city_id:         Optional[int] = None
+    district:        Optional[str] = None
+    state_name:      Optional[str] = None
+    state_code:      Optional[str] = None
+    pincode:         Optional[str] = None
+    gstin:           Optional[str] = None
+    pan:             Optional[str] = None
 
 
 class GLCreate(GLBase):
@@ -39,6 +52,7 @@ class GLOut(GLBase):
 @router.get("/gl", response_model=List[GLOut])
 def list_gl(
     group_name: Optional[str] = Query(None),
+    sub_group: Optional[str] = Query(None),
     include_inactive: bool = Query(False),
     db: Session = Depends(get_db)
 ):
@@ -47,7 +61,19 @@ def list_gl(
         q = q.filter(GLMaster.is_active == True)
     if group_name:
         q = q.filter(GLMaster.group_name == group_name)
+    if sub_group:
+        q = q.filter(GLMaster.sub_group == sub_group)
     return q.order_by(GLMaster.group_name, GLMaster.gl_name).all()
+
+# Alias for legacy frontend calls
+@router.get("/gl-master", response_model=List[GLOut])
+def list_gl_master(
+    group_name: Optional[str] = Query(None),
+    sub_group: Optional[str] = Query(None),
+    include_inactive: bool = Query(False),
+    db: Session = Depends(get_db)
+):
+    return list_gl(group_name, sub_group, include_inactive, db)
 
 
 @router.get("/gl/groups")

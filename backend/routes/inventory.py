@@ -59,6 +59,37 @@ def create_supplier(data: SupplierCreate, db: Session = Depends(get_db)):
     db.refresh(s)
     return s
 
+@router.put("/suppliers/{supplier_id}", response_model=SupplierOut)
+def update_supplier(supplier_id: int, data: SupplierCreate, db: Session = Depends(get_db)):
+    s = db.query(Supplier).filter(Supplier.supplier_id == supplier_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    for k, v in data.model_dump(exclude_unset=True).items():
+        setattr(s, k, v)
+    db.commit()
+    db.refresh(s)
+    return s
+
+@router.delete("/suppliers/{supplier_id}")
+def deactivate_supplier(supplier_id: int, db: Session = Depends(get_db)):
+    s = db.query(Supplier).filter(Supplier.supplier_id == supplier_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    s.is_active = False
+    db.commit()
+    return {"message": "Supplier deactivated"}
+
+@router.put("/suppliers/{supplier_id}/reactivate", response_model=SupplierOut)
+def reactivate_supplier(supplier_id: int, db: Session = Depends(get_db)):
+    s = db.query(Supplier).filter(Supplier.supplier_id == supplier_id).first()
+    if not s:
+        raise HTTPException(status_code=404, detail="Supplier not found")
+    s.is_active = True
+    db.commit()
+    db.refresh(s)
+    return s
+
+
 # ── MEDICINES ────────────────────────────────────────────────
 @router.get("/medicines", response_model=List[MedicineOut])
 def list_medicines(search: Optional[str] = Query(None), include_inactive: bool = Query(False), db: Session = Depends(get_db)):

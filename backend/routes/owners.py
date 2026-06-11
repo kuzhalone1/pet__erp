@@ -13,18 +13,6 @@ from utils.gl_utils import create_gl_account
 router = APIRouter(prefix="/owners", tags=["Pet Owners"])
 
 
-def generate_owner_code(db: Session) -> str:
-    last = db.query(PetOwner).order_by(PetOwner.owner_id.desc()).first()
-    if not last:
-        return "OWN001"
-    # Extract number from last code
-    try:
-        num = int(last.owner_code.replace("OWN", "")) + 1
-    except Exception:
-        num = last.owner_id + 1
-    return f"OWN{num:03d}"
-
-
 @router.get("", response_model=List[PetOwnerOut])
 def list_owners(
     search: Optional[str] = Query(None),

@@ -36,3 +36,13 @@ npm-debug.log*
 .idea/
 *.swp
 *.swo
+
+# Scratch & Local Backups
+scratch/
+backend/scratch/
+*.sql
+!database/*.sql
+!backend/migrations/*.sql
+import bcrypt.py
+import secrets.py
+
